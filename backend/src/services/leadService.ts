@@ -19,7 +19,7 @@ export class LeadService {
       data.source || null,
       data.source_detail || null,
       data.quality_score || 50,
-      data.status || 'new',
+      'new', // Default status for new leads
     ]);
     return result.rows[0];
   }
