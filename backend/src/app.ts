@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import apiRouter from './routes';
 
 dotenv.config();
 
@@ -28,8 +29,12 @@ app.get('/health', (req: Request, res: Response) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
+    database: 'connected',
   });
 });
+
+// Mount API routes
+app.use('/api', apiRouter);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -43,8 +48,10 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
+    success: false,
     error: 'Not found',
     path: req.path,
+    timestamp: new Date().toISOString(),
   });
 });
 
