@@ -1,131 +1,46 @@
-version: '3.9'
-
 services:
-  # Express.js Backend API
   api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: steadyleads-api
     environment:
-      # Database (from VPS host environment variables)
-      - DB_HOST=${DB_HOST:-postgres}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_NAME=${DB_NAME:-openclaw}
-      - DB_USER=${DB_USER:-openclaw_dba}
-      - DB_PASSWORD=${DB_PASSWORD}
-      # API Configuration
+      - DB_HOST=postgres-db-postgres-1
+      - DB_PORT=5432
+      - DB_NAME=openclaw
+      - DB_USER=postgres_admin
+      - DB_PASSWORD=change_me_strong
       - NODE_ENV=production
       - API_PORT=3000
-      - JWT_SECRET=${JWT_SECRET}
-      # GitHub (if needed for API integrations)
-      - GITHUB_API_TOKEN=${GITHUB_API_TOKEN}
-      # Telegram (if needed for API integrations)
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - JWT_SECRET=dev-secret-key-change-in-prod
+      - HCAPTCHA_SITE_KEY=${HCAPTCHA_SITE_KEY}
+      - HCAPTCHA_SECRET_KEY=${HCAPTCHA_SECRET_KEY}
     ports:
       - "3000:3000"
-    expose:
-      - "3000"
     restart: unless-stopped
     networks:
-      - traefik-network
-      - steadyleads-network
+      - openclaw-sluh_default
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
-    labels:
-      # Traefik routing for /api paths
-      - "traefik.enable=true"
-      - "traefik.http.routers.steadyleads-api.entrypoints=web,websecure"
-      - "traefik.http.routers.steadyleads-api.rule=Host(`steadyleads.co`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.steadyleads-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.steadyleads-api.service=steadyleads-api-service"
-      - "traefik.http.middlewares.steadyleads-api-stripprefix.stripprefix.prefixes=/api"
-      - "traefik.http.routers.steadyleads-api.middlewares=steadyleads-api-stripprefix"
-      - "traefik.http.services.steadyleads-api-service.loadbalancer.server.port=3000"
     volumes:
       - ./logs:/app/logs
-    depends_on:
-      - postgres-check
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-
-  # Next.js Frontend (placeholder for future)
-  # Uncomment when frontend is ready
-  # frontend:
-  #   build:
-  #     context: ../frontend
-  #     dockerfile: Dockerfile
-  #   container_name: steadyleads-web
-  #   environment:
-  #     - NODE_ENV=production
-  #     - API_URL=http://api:3000
-  #     - NEXT_PUBLIC_API_URL=https://steadyleads.co/api
-  #   ports:
-  #     - "3001:3001"
-  #   expose:
-  #     - "3001"
-  #   restart: unless-stopped
-  #   networks:
-  #     - traefik-network
-  #     - steadyleads-network
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:3001"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #   labels:
-  #     # Traefik routing for root path
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.steadyleads-web.entrypoints=web,websecure"
-  #     - "traefik.http.routers.steadyleads-web.rule=Host(`steadyleads.co`)"
-  #     - "traefik.http.routers.steadyleads-web.tls.certresolver=letsencrypt"
-  #     - "traefik.http.routers.steadyleads-web.service=steadyleads-web-service"
-  #     - "traefik.http.services.steadyleads-web-service.loadbalancer.server.port=3001"
-  #   volumes:
-  #     - ./logs:/app/logs
-  #   depends_on:
-  #     - api
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
-
-  # PostgreSQL Health Check (connects to external postgres)
-  postgres-check:
-    image: postgres:15-alpine
-    container_name: steadyleads-db-check
-    environment:
-      PGPASSWORD: ${DB_PASSWORD}
-    command: >
-      sh -c 'until pg_isready -h ${DB_HOST:-postgres} -p ${DB_PORT:-5432} -U ${DB_USER:-openclaw_dba} -d ${DB_NAME:-openclaw}; do sleep 2; done && echo "Database ready"'
-    networks:
-      - traefik-network
-    restart: on-failure
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "1m"
-        max-file: "1"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.steadyleads-api.entrypoints=web,websecure
+      - "traefik.http.routers.steadyleads-api.rule=Host(`steadyleads.co`) && PathPrefix(`/api`)"
+      - traefik.http.routers.steadyleads-api.priority=10
+      - traefik.http.routers.steadyleads-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.steadyleads-api.service=steadyleads-api-service
+      - traefik.http.services.steadyleads-api-service.loadbalancer.server.port=3000
 
 networks:
-  # Connect to existing Traefik network
-  traefik-network:
-    name: traefik-network
+  openclaw-sluh_default:
     external: true
-  
-  # Internal network for inter-service communication
-  steadyleads-network:
-    name: steadyleads-network
-    driver: bridge
-
-volumes:
-  logs:
-    driver: local

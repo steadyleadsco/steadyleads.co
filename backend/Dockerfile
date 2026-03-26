@@ -10,8 +10,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci --only=production && \
-    npm ci --only=development
+RUN npm install
 
 # Copy source
 COPY src ./src
@@ -25,34 +24,22 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
-
-# Copy package files
-COPY package*.json ./
+# Copy built app from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/migrations ./migrations
-
-# Create logs directory
-RUN mkdir -p /app/logs
-
-# Non-root user for security
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 USER nodejs
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
-
-# Expose port
 EXPOSE 3000
 
-# Start application
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD node -e "require(\"http\").get(\"http://localhost:3000/health\", (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
 CMD ["node", "dist/index.js"]

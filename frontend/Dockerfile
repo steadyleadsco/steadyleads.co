@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -20,13 +20,14 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install only production dependencies
+# Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy built app from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001

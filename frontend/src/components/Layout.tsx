@@ -30,7 +30,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       <main>{children}</main>
       <footer className="bg-navy text-white py-12 mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p>&copy; 2024 Steady Leads. All rights reserved.</p>
+          <p>&copy; 2026 Steady Leads. All rights reserved.</p>
           <p className="text-slate-400 mt-2">abel@steadyleads.co</p>
         </div>
       </footer>

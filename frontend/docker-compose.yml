@@ -1,0 +1,40 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: steadyleads-web
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://steadyleads.co/api
+    ports:
+      - "3001:3000"
+    expose:
+      - "3000"
+    restart: unless-stopped
+    networks:
+      - traefik-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.steadyleads-web.entrypoints=web,websecure"
+      - "traefik.http.routers.steadyleads-web.rule=Host(`steadyleads.co`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.steadyleads-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.steadyleads-web.service=steadyleads-web-service"
+      - "traefik.http.services.steadyleads-web-service.loadbalancer.server.port=3000"
+      - "traefik.http.routers.steadyleads-web.priority=1"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik-network:
+    name: traefik-network
+    external: true
